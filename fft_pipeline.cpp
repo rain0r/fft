@@ -1,6 +1,8 @@
 #include "fft_pipeline.h"
 
 std::vector<Matrix> a, A, B, C;
+boost::thread_group proc_g;
+
 int layer = 16;
 int n = 1024;
 int m = 1024;
@@ -102,7 +104,7 @@ void D_to_d() {
 int main(int argc, char* argv[]) {
   std::cout << "Blatt02/Aufgabe 2" << std::endl;
   boost::timer::auto_cpu_timer timer;
-  boost::thread_group proc_g;
+
   a_to_A();
 
   return 0;
