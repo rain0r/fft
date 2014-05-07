@@ -1,59 +1,77 @@
 #include "fft_pipeline.h"
 
-int main(int argc, char* argv[]) {
-  std::cout << "Blatt02/Aufgabe 2" << std::endl;
+std::vector<Matrix> a, A, B, C;
+int layer = 16;
+int n = 1024;
+int m = 1024;
 
-  int layer = 2;
-  int n = 2;
-  int m = 2;
-  std::vector<Matrix> a, A, B, C;
+void a_to_A();
+void AB_to_C();
+void create_B();
+void C_to_D();
+void D_to_d();
 
-  // Step One: Create a and apply FFT
+// Step One: Create a and apply FFT
+// a: Matrix(m, n)
+void a_to_A() {
+//  std::cout << "a_to_A()" << std::endl;
+
   for (int i = 0; i <= layer; i++) {
     // Iterate over the layer
-    Matrix *a_mat = new Matrix(n, m);
+    Matrix *a_mat = new Matrix(m, n);
     FFT2D_inplace(a_mat->getValues(), a_mat->getM(), a_mat->getN(), 1);
 
     // Save Matrix in Vector
     a.push_back(*a_mat);
   }
-
   A = a;
+  create_B();
+}
+void create_B() {
+//  std::cout << "create_B()" << std::endl;
 
   // Step Two: Create B
   for (int i = 0; i <= layer; i++) {
     // Iterate over the layers
-    Matrix *B_mat = new Matrix(n, m);
+    Matrix *B_mat = new Matrix(m, n);
 
     // Save Matrix in Vector
     B.push_back(*B_mat);
   }
+  AB_to_C();
+}
+void AB_to_C() {
+//  std::cout << "AB_to_C()" << std::endl;
 
   // Step Three: Multiply A and B
   // Iterate over the layer
-  for (int i = 0; i <= layer; i++) {
-    Matrix *C_mat = new Matrix(n, m);
+  for (int lay = 0; lay <= layer; lay++) {
+    Matrix *C_mat = new Matrix(m, n);
 
     // Iterate over m and n
     for (int i = 0; i <= m; i++) {
       for (int j = 0; j <= n; j++) {
 
         // Multiply the values
-        C_mat->getValues()[i][j].imag = A.at(i).getValues()[i][j].imag
-            * B.at(i).getValues()[i][j].imag;
+        C_mat->getValues()[i][j].imag = A.at(lay).getValues()[i][j].imag
+            * B.at(lay).getValues()[i][j].imag;
 
-        C_mat->getValues()[i][j].real = A.at(i).getValues()[i][j].real
-            * B.at(i).getValues()[i][j].real;
+        C_mat->getValues()[i][j].real = A.at(lay).getValues()[i][j].real
+            * B.at(lay).getValues()[i][j].real;
 
         C.push_back(*C_mat);
       }
     }
   }
+  C_to_D();
+}
+void C_to_D() {
+//  std::cout << "C_to_D()" << std::endl;
 
   // Step Four: Sum up to one Matrix
 
   // Matrix to store the result
-  Matrix *D_mat = new Matrix(n, m);
+  Matrix *D_mat = new Matrix(m, n);
 
   // Iterate over the layer
   for (int i = 0; i <= layer; i++) {
@@ -71,9 +89,21 @@ int main(int argc, char* argv[]) {
       }
     }
   }
+  D_to_d();
+}
+void D_to_d() {
+//  std::cout << "D_to_d()" << std::endl;
 
-  Matrix *d_mat = new Matrix(n, m);
+  // Step Five: apply IFFT
+  Matrix *d_mat = new Matrix(m, n);
   FFT2D_inplace(d_mat->getValues(), d_mat->getM(), d_mat->getN(), -1);
+}
+
+int main(int argc, char* argv[]) {
+  std::cout << "Blatt02/Aufgabe 2" << std::endl;
+  boost::timer::auto_cpu_timer timer;
+  boost::thread_group proc_g;
+  a_to_A();
 
   return 0;
 }

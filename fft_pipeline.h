@@ -2,14 +2,16 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <boost/thread.hpp>
+#include <boost/timer/timer.hpp>
 
 #ifndef C_FFT_PIPELINE_H
 #define C_FFT_PIPELINE_H
 
 class Matrix {
  private:
-  int n;
   int m;
+  int n;
   complex_t** values;
 
   // initialize with values
@@ -29,9 +31,9 @@ class Matrix {
   }
 
  public:
-  Matrix(int n_, int m_) {
-    this->n = n_;
-    this->m = m_;
+  Matrix(int m, int n) {
+    this->m = m;
+    this->n = n;
     this->values = new complex_t*[m];
     this->init();
   }
@@ -54,7 +56,7 @@ class Matrix {
   void print() {
     for (int i = 0; i <= this->m; i++) {
       for (int j = 0; j <= this->n; j++) {
-        std::cout << "real: " << this->values[i][j].real << " imag: "
+        std::cout << "real: " << this->values[i][j].real << "\t imag: "
                   << this->values[i][j].imag << std::endl;
       }
     }
