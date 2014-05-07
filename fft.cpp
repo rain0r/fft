@@ -27,81 +27,81 @@
  data[] : The FFT or IFFT results are stored in data, overwriting the input.
  */
 void four1(int isign, int nn, float *real, float *imag) {
-  int n, mmax, m, j, istep, i;
-  float wtemp, wr, wpr, wpi, wi, theta;
-  float tempr, tempi;
+	int n, mmax, m, j, istep, i;
+	float wtemp, wr, wpr, wpi, wi, theta;
+	float tempr, tempi;
 
-  n = nn << 1;
-  j = 1;
-  for (i = 1; i < n; i += 2) {
-    if (j > i) {
-      int j2 = (j - 1) / 2;
-      int i2 = (i - 1) / 2;
-      //tempr = data[j];
-      tempr = real[j2];
-      //data[j] = data[i];
-      real[j2] = real[i2];
-      //data[i] = tempr;
-      real[i2] = tempr;
-      //tempr = data[j+1];
-      tempr = imag[j2];
-      //data[j+1] = data[i+1];
-      imag[j2] = imag[i2];
-      //data[i+1] = tempr;
-      imag[i2] = tempr;
-    }
-    m = n >> 1;
-    while (m >= 2 && j > m) {
-      j -= m;
-      m >>= 1;
-    }
-    j += m;
-  }
-  mmax = 2;
-  while (n > mmax) {
-    istep = 2 * mmax;
-    theta = TWOPI / (isign * mmax);
-    wtemp = sin(0.5 * theta);
-    wpr = -2.0 * wtemp * wtemp;
-    wpi = sin(theta);
-    wr = 1.0;
-    wi = 0.0;
-    for (m = 1; m < mmax; m += 2) {
-      for (i = m; i <= n; i += istep) {
-        j = i + mmax;
-        int j2 = (j - 1) / 2;
-        int i2 = (i - 1) / 2;
-        //tempr = wr*data[j]   - wi*data[j+1];
-        tempr = wr * real[j2] - wi * imag[j2];
-        //tempi = wr*data[j+1] + wi*data[j];
-        tempi = wr * imag[j2] + wi * real[j2];
-        //data[j]   = data[i]   - tempr;
-        real[j2] = real[i2] - tempr;
-        //data[j+1] = data[i+1] - tempi;
-        imag[j2] = imag[i2] - tempi;
-        //data[i] += tempr;
-        real[i2] += tempr;
-        //data[i+1] += tempi;
-        imag[i2] += tempi;
-      }
-      wr = (wtemp = wr) * wpr - wi * wpi + wr;
-      wi = wi * wpr + wtemp * wpi + wi;
-    }
-    mmax = istep;
-  }
+	n = nn << 1;
+	j = 1;
+	for (i = 1; i < n; i += 2) {
+		if (j > i) {
+			int j2 = (j - 1) / 2;
+			int i2 = (i - 1) / 2;
+			//tempr = data[j];
+			tempr = real[j2];
+			//data[j] = data[i];
+			real[j2] = real[i2];
+			//data[i] = tempr;
+			real[i2] = tempr;
+			//tempr = data[j+1];
+			tempr = imag[j2];
+			//data[j+1] = data[i+1];
+			imag[j2] = imag[i2];
+			//data[i+1] = tempr;
+			imag[i2] = tempr;
+		}
+		m = n >> 1;
+		while (m >= 2 && j > m) {
+			j -= m;
+			m >>= 1;
+		}
+		j += m;
+	}
+	mmax = 2;
+	while (n > mmax) {
+		istep = 2 * mmax;
+		theta = TWOPI / (isign * mmax);
+		wtemp = sin(0.5 * theta);
+		wpr = -2.0 * wtemp * wtemp;
+		wpi = sin(theta);
+		wr = 1.0;
+		wi = 0.0;
+		for (m = 1; m < mmax; m += 2) {
+			for (i = m; i <= n; i += istep) {
+				j = i + mmax;
+				int j2 = (j - 1) / 2;
+				int i2 = (i - 1) / 2;
+				//tempr = wr*data[j]   - wi*data[j+1];
+				tempr = wr * real[j2] - wi * imag[j2];
+				//tempi = wr*data[j+1] + wi*data[j];
+				tempi = wr * imag[j2] + wi * real[j2];
+				//data[j]   = data[i]   - tempr;
+				real[j2] = real[i2] - tempr;
+				//data[j+1] = data[i+1] - tempi;
+				imag[j2] = imag[i2] - tempi;
+				//data[i] += tempr;
+				real[i2] += tempr;
+				//data[i+1] += tempi;
+				imag[i2] += tempi;
+			}
+			wr = (wtemp = wr) * wpr - wi * wpi + wr;
+			wi = wi * wpr + wtemp * wpi + wi;
+		}
+		mmax = istep;
+	}
 }
 
 int isPowerOfTwo(unsigned int x) {
-  unsigned int numberOfOneBits = 0;
+	unsigned int numberOfOneBits = 0;
 
-  while (x && numberOfOneBits <= 1) {
-    if ((x & 1) == 1) {  // Is the least significant bit a 1?
-      numberOfOneBits++;
-    }
-    x >>= 1;  //Shift number one bit to the right
-  }
+	while (x && numberOfOneBits <= 1) {
+		if ((x & 1) == 1) {  // Is the least significant bit a 1?
+			numberOfOneBits++;
+		}
+		x >>= 1;  //Shift number one bit to the right
+	}
 
-  return (numberOfOneBits == 1);  // 'True' if only one 1 bit
+	return (numberOfOneBits == 1);  // 'True' if only one 1 bit
 }
 
 /*-------------------------------------------------------------------------
@@ -112,104 +112,104 @@ int isPowerOfTwo(unsigned int x) {
  the dimensions are not powers of 2
  */
 int FFT2D_inplace(complex_t **c, int nx, int ny, int dir) {
-  int i, j;
-  float *real, *imag;
+	int i, j;
+	float *real, *imag;
 
-  if (!isPowerOfTwo(nx) || !isPowerOfTwo(ny)) {
-    return 0;
-  }
+	if (!isPowerOfTwo(nx) || !isPowerOfTwo(ny)) {
+		return 0;
+	}
 
-  /* Transform the rows */
-  real = (float *) malloc(nx * sizeof(float));
-  imag = (float *) malloc(nx * sizeof(float));
-  if (real == NULL || imag == NULL) {
-    return 0;
-  }
-  for (j = 0; j < ny; j++) {
-    for (i = 0; i < nx; i++) {
-      real[i] = c[i][j].real;
-      imag[i] = c[i][j].imag;
-    }
-    four1(dir, nx, real, imag);
-    for (i = 0; i < nx; i++) {
-      c[i][j].real = real[i];
-      c[i][j].imag = imag[i];
-    }
-  }
-  free(real);
-  free(imag);
+	/* Transform the rows */
+	real = (float *) malloc(nx * sizeof(float));
+	imag = (float *) malloc(nx * sizeof(float));
+	if (real == NULL || imag == NULL) {
+		return 0;
+	}
+	for (j = 0; j < ny; j++) {
+		for (i = 0; i < nx; i++) {
+			real[i] = c[i][j].real;
+			imag[i] = c[i][j].imag;
+		}
+		four1(dir, nx, real, imag);
+		for (i = 0; i < nx; i++) {
+			c[i][j].real = real[i];
+			c[i][j].imag = imag[i];
+		}
+	}
+	free(real);
+	free(imag);
 
-  /* Transform the columns */
-  real = (float *) malloc(ny * sizeof(float));
-  imag = (float *) malloc(ny * sizeof(float));
-  if (real == NULL || imag == NULL) {
-    return 0;
-  }
-  for (i = 0; i < nx; i++) {
-    for (j = 0; j < ny; j++) {
-      real[j] = c[i][j].real;
-      imag[j] = c[i][j].imag;
-    }
-    four1(dir, ny, real, imag);
-    for (j = 0; j < ny; j++) {
-      c[i][j].real = real[j];
-      c[i][j].imag = imag[j];
-    }
-  }
-  free(real);
-  free(imag);
+	/* Transform the columns */
+	real = (float *) malloc(ny * sizeof(float));
+	imag = (float *) malloc(ny * sizeof(float));
+	if (real == NULL || imag == NULL) {
+		return 0;
+	}
+	for (i = 0; i < nx; i++) {
+		for (j = 0; j < ny; j++) {
+			real[j] = c[i][j].real;
+			imag[j] = c[i][j].imag;
+		}
+		four1(dir, ny, real, imag);
+		for (j = 0; j < ny; j++) {
+			c[i][j].real = real[j];
+			c[i][j].imag = imag[j];
+		}
+	}
+	free(real);
+	free(imag);
 
-  return 1;
+	return 1;
 }
 
 int FFT2D(complex_t **c, int nx, int ny, int dir, complex_t **out) {
-  int i, j;
-  float *real, *imag;
+	int i, j;
+	float *real, *imag;
 
-  if (!isPowerOfTwo(nx) || !isPowerOfTwo(ny)) {
-    return 0;
-  }
+	if (!isPowerOfTwo(nx) || !isPowerOfTwo(ny)) {
+		return 0;
+	}
 
-  /* Transform the rows */
-  real = (float *) malloc(nx * sizeof(float));
-  imag = (float *) malloc(nx * sizeof(float));
-  if (real == NULL || imag == NULL) {
-    return 0;
-  }
-  for (j = 0; j < ny; j++) {
-    for (i = 0; i < nx; i++) {
-      real[i] = c[i][j].real;
-      imag[i] = c[i][j].imag;
-    }
-    four1(dir, nx, real, imag);
-    for (i = 0; i < nx; i++) {
-      out[i][j].real = real[i];
-      out[i][j].imag = imag[i];
-    }
-  }
-  free(real);
-  free(imag);
+	/* Transform the rows */
+	real = (float *) malloc(nx * sizeof(float));
+	imag = (float *) malloc(nx * sizeof(float));
+	if (real == NULL || imag == NULL) {
+		return 0;
+	}
+	for (j = 0; j < ny; j++) {
+		for (i = 0; i < nx; i++) {
+			real[i] = c[i][j].real;
+			imag[i] = c[i][j].imag;
+		}
+		four1(dir, nx, real, imag);
+		for (i = 0; i < nx; i++) {
+			out[i][j].real = real[i];
+			out[i][j].imag = imag[i];
+		}
+	}
+	free(real);
+	free(imag);
 
-  /* Transform the columns */
-  real = (float *) malloc(ny * sizeof(float));
-  imag = (float *) malloc(ny * sizeof(float));
-  if (real == NULL || imag == NULL) {
-    return 0;
-  }
-  for (i = 0; i < nx; i++) {
-    for (j = 0; j < ny; j++) {
-      real[j] = out[i][j].real;
-      imag[j] = out[i][j].imag;
-    }
-    four1(dir, ny, real, imag);
-    for (j = 0; j < ny; j++) {
-      out[i][j].real = real[j];
-      out[i][j].imag = imag[j];
-    }
-  }
-  free(real);
-  free(imag);
+	/* Transform the columns */
+	real = (float *) malloc(ny * sizeof(float));
+	imag = (float *) malloc(ny * sizeof(float));
+	if (real == NULL || imag == NULL) {
+		return 0;
+	}
+	for (i = 0; i < nx; i++) {
+		for (j = 0; j < ny; j++) {
+			real[j] = out[i][j].real;
+			imag[j] = out[i][j].imag;
+		}
+		four1(dir, ny, real, imag);
+		for (j = 0; j < ny; j++) {
+			out[i][j].real = real[j];
+			out[i][j].imag = imag[j];
+		}
+	}
+	free(real);
+	free(imag);
 
-  return 1;
+	return 1;
 }
 
