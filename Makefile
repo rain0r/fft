@@ -1,7 +1,8 @@
 CC=gcc
 CXX=g++
 RM=rm -f
-CPPFLAGS=-O3 -g -mrtm -fno-omit-frame-pointer 
+#CPPFLAGS=-O3 -g -mrtm -fno-omit-frame-pointer 
+CPPFLAGS=-O3 -g -fno-omit-frame-pointer 
 LDFLAGS=-O3 -g  -lboost_timer -lboost_system -lboost_thread 
 LDLIBS=
 
