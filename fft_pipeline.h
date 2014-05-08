@@ -2,8 +2,10 @@
 #include <cstdlib>
 #include <iostream>
 #include <vector>
+#include <queue>
 #include <boost/thread.hpp>
 #include <boost/timer/timer.hpp>
+#include <immintrin.h>
 
 #ifndef C_FFT_PIPELINE_H
 #define C_FFT_PIPELINE_H
@@ -61,6 +63,25 @@ class Matrix {
       }
     }
   }
+};
+
+class Trans {
+ public:
+  Trans() {
+    this->locked = false;
+  }
+
+  bool isLocked() const {
+    return locked;
+  }
+
+  void setLocked(bool locked) {
+    this->locked = locked;
+  }
+
+ private:
+  bool locked;
+
 };
 
 #endif

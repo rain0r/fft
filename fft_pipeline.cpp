@@ -1,23 +1,40 @@
 #include "fft_pipeline.h"
 
-std::vector<Matrix> a, A, B, C;
-boost::thread_group proc_g;
+#define RETRIES 1000
+
+typedef std::vector<Matrix> matrix_vector;
+typedef std::queue<matrix_vector> vector_queue;
+typedef std::queue<Matrix> matrix_queue;
+
+//vec_mat a, A, B, C;
+
+vector_queue A_work_queue = vector_queue();
+vector_queue B_work_queue = vector_queue();
+vector_queue C_work_queue = vector_queue();
+matrix_queue D_work_queue = matrix_queue();
+
+Trans A_mtx = Trans();
+Trans B_mtx = Trans();
+Trans C_mtx = Trans();
+Trans D_mtx = Trans();
 
 int layer = 16;
 int n = 1024;
 int m = 1024;
 
 void a_to_A();
-void AB_to_C();
 void create_B();
+void AB_to_C();
 void C_to_D();
 void D_to_d();
+bool finish();
 
 // Step One: Create a and apply FFT
 // a: Matrix(m, n)
 void a_to_A() {
-//  std::cout << "a_to_A()" << std::endl;
+  std::cout << "a_to_A()" << std::endl;
 
+  matrix_vector a;
   for (int i = 0; i <= layer; i++) {
     // Iterate over the layer
     Matrix *a_mat = new Matrix(m, n);
@@ -26,13 +43,32 @@ void a_to_A() {
     // Save Matrix in Vector
     a.push_back(*a_mat);
   }
-  A = a;
-  create_B();
-}
-void create_B() {
-//  std::cout << "create_B()" << std::endl;
 
-  // Step Two: Create B
+  for (int i = 0; i < RETRIES; i++) {
+    unsigned int status;
+    if ((status = _xbegin()) == _XBEGIN_STARTED) {
+      if (!A_mtx.isLocked()) {
+        A_mtx.setLocked(true);
+        A_work_queue.push(a);
+        A_mtx.setLocked(false);
+      }
+      _xabort(0xff); /* lock busy */
+    } else {
+      // fallback with mutex
+    }
+    if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
+      // wait
+    } else if (!(status & _XABORT_RETRY))
+      break;
+  }
+
+}
+
+void create_B() {
+  std::cout << "create_B()" << std::endl;
+
+// Step Two: Create B
+  matrix_vector B;
   for (int i = 0; i <= layer; i++) {
     // Iterate over the layers
     Matrix *B_mat = new Matrix(m, n);
@@ -40,73 +76,259 @@ void create_B() {
     // Save Matrix in Vector
     B.push_back(*B_mat);
   }
-  AB_to_C();
+
+  for (int i = 0; i < RETRIES; i++) {
+    unsigned int status;
+    if ((status = _xbegin()) == _XBEGIN_STARTED) {
+      if (!B_mtx.isLocked()) {
+        B_mtx.setLocked(true);
+        B_work_queue.push(B);
+        B_mtx.setLocked(false);
+      }
+      _xabort(0xff); /* lock busy */
+    } else {
+      // fallback with mutex
+    }
+    if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
+      // wait
+    } else if (!(status & _XABORT_RETRY))
+      break;
+  }
 }
 void AB_to_C() {
-//  std::cout << "AB_to_C()" << std::endl;
+  std::cout << "AB_to_C()" << std::endl;
 
-  // Step Three: Multiply A and B
-  // Iterate over the layer
-  for (int lay = 0; lay <= layer; lay++) {
-    Matrix *C_mat = new Matrix(m, n);
+  matrix_vector C;
+  while (!finish()) {
 
-    // Iterate over m and n
-    for (int i = 0; i <= m; i++) {
-      for (int j = 0; j <= n; j++) {
+    if (!A_work_queue.empty() && !B_work_queue.empty()) {
+      matrix_vector A;
+      matrix_vector B;
 
-        // Multiply the values
-        C_mat->getValues()[i][j].imag = A.at(lay).getValues()[i][j].imag
-            * B.at(lay).getValues()[i][j].imag;
+      for (int i = 0; i < RETRIES; i++) {
+        unsigned int status;
+        if ((status = _xbegin()) == _XBEGIN_STARTED) {
+          if (!A_mtx.isLocked()) {
+            A_mtx.setLocked(true);
+            matrix_vector A = A_work_queue.front();
+            A_work_queue.pop();
+            A_mtx.setLocked(false);
+          }
+          _xabort(0xff); /* lock busy */
+        } else {
+          // fallback with mutex
+        }
+        if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
+          // wait
+        } else if (!(status & _XABORT_RETRY))
+          break;
+      }
 
-        C_mat->getValues()[i][j].real = A.at(lay).getValues()[i][j].real
-            * B.at(lay).getValues()[i][j].real;
 
-        C.push_back(*C_mat);
+      for (int i = 0; i < RETRIES; i++) {
+        unsigned int status;
+        if ((status = _xbegin()) == _XBEGIN_STARTED) {
+          if (!B_mtx.isLocked()) {
+            B_mtx.setLocked(true);
+            matrix_vector B = B_work_queue.front();
+            B_work_queue.pop();
+            B_mtx.setLocked(false);
+          }
+          _xabort(0xff); /* lock busy */
+        } else {
+          // fallback with mutex
+        }
+        if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
+          // wait
+        } else if (!(status & _XABORT_RETRY))
+          break;
+      }
+
+      // Step Three: Multiply A and B
+      // Iterate over the layer
+      for (int lay = 0; lay <= layer; lay++) {
+        Matrix *C_mat = new Matrix(m, n);
+
+        // Iterate over m and n
+        for (int i = 0; i <= m; i++) {
+          for (int j = 0; j <= n; j++) {
+
+            // Multiply the values
+            C_mat->getValues()[i][j].imag = A.at(lay).getValues()[i][j].imag
+                * B.at(lay).getValues()[i][j].imag;
+
+            C_mat->getValues()[i][j].real = A.at(lay).getValues()[i][j].real
+                * B.at(lay).getValues()[i][j].real;
+
+            C.push_back(*C_mat);
+          }
+        }
+      }
+
+      // Push C on the worker queue
+      for (int i = 0; i < RETRIES; i++) {
+        unsigned int status;
+        if ((status = _xbegin()) == _XBEGIN_STARTED) {
+          if (!C_mtx.isLocked()) {
+            C_mtx.setLocked(true);
+            C_work_queue.push(C);
+            C_mtx.setLocked(false);
+          }
+          _xabort(0xff); /* lock busy */
+        } else {
+          // fallback with mutex
+        }
+        if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
+          // wait
+        } else if (!(status & _XABORT_RETRY))
+          break;
       }
     }
   }
-  C_to_D();
 }
+
+// Step Four: Sum up to one Matrix
 void C_to_D() {
-//  std::cout << "C_to_D()" << std::endl;
+  std::cout << "C_to_D()" << std::endl;
 
-  // Step Four: Sum up to one Matrix
+  while (!finish()) {
 
-  // Matrix to store the result
-  Matrix *D_mat = new Matrix(m, n);
+    if (!C_work_queue.empty()) {
 
-  // Iterate over the layer
-  for (int i = 0; i <= layer; i++) {
+      matrix_vector C;
 
-    // Iterate over m and n
-    for (int i = 0; i <= m; i++) {
-      for (int j = 0; j <= n; j++) {
-
-        // Sump up
-        D_mat->getValues()[i][j].imag = C.at(i).getValues()[i][j].imag
-            + C.at(i).getValues()[i][j].imag;
-
-        D_mat->getValues()[i][j].real = C.at(i).getValues()[i][j].real
-            + C.at(i).getValues()[i][j].real;
+      for (int i = 0; i < RETRIES; i++) {
+        unsigned int status;
+        if ((status = _xbegin()) == _XBEGIN_STARTED) {
+          if (!C_mtx.isLocked()) {
+            C_mtx.setLocked(true);
+            matrix_vector C = C_work_queue.front();
+            C_work_queue.pop();
+            C_mtx.setLocked(false);
+          }
+          _xabort(0xff); /* lock busy */
+        } else {
+          // fallback with mutex
+        }
+        if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
+          // wait
+        } else if (!(status & _XABORT_RETRY))
+          break;
       }
+
+      // Matrix to store the result
+      Matrix *D_mat = new Matrix(m, n);
+
+      // Iterate over the layer
+      for (int i = 0; i <= layer; i++) {
+
+        // Iterate over m and n
+        for (int i = 0; i <= m; i++) {
+          for (int j = 0; j <= n; j++) {
+
+            // Sump up
+            D_mat->getValues()[i][j].imag = C.at(i).getValues()[i][j].imag
+                + C.at(i).getValues()[i][j].imag;
+
+            D_mat->getValues()[i][j].real = C.at(i).getValues()[i][j].real
+                + C.at(i).getValues()[i][j].real;
+          }
+        }
+      }
+
+      for (int i = 0; i < RETRIES; i++) {
+        unsigned int status;
+        if ((status = _xbegin()) == _XBEGIN_STARTED) {
+          if (!D_mtx.isLocked()) {
+            D_mtx.setLocked(true);
+            D_work_queue.push(*D_mat);
+            D_mtx.setLocked(false);
+          }
+          _xabort(0xff); /* lock busy */
+        } else {
+          // fallback with mutex
+        }
+        if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
+          // wait
+        } else if (!(status & _XABORT_RETRY))
+          break;
+      }
+
     }
   }
-  D_to_d();
 }
-void D_to_d() {
-//  std::cout << "D_to_d()" << std::endl;
 
-  // Step Five: apply IFFT
-  Matrix *d_mat = new Matrix(m, n);
-  FFT2D_inplace(d_mat->getValues(), d_mat->getM(), d_mat->getN(), -1);
+// Step Five: apply IFFT
+void D_to_d() {
+  std::cout << "D_to_d()" << std::endl;
+
+  while (!finish()) {
+    if (!D_work_queue.empty()) {
+
+      for (int i = 0; i < RETRIES; i++) {
+        unsigned int status;
+        if ((status = _xbegin()) == _XBEGIN_STARTED) {
+          if (!D_mtx.isLocked()) {
+            D_mtx.setLocked(true);
+            Matrix D = D_work_queue.front();
+            D_work_queue.pop();
+            D_mtx.setLocked(false);
+          }
+          _xabort(0xff); /* lock busy */
+        } else {
+          // fallback with mutex
+        }
+        if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
+          // wait
+        } else if (!(status & _XABORT_RETRY))
+          break;
+      }
+
+      Matrix *d_mat = new Matrix(m, n);
+      FFT2D_inplace(d_mat->getValues(), d_mat->getM(), d_mat->getN(), -1);
+
+      std::cout << "End" << std::endl;
+    }
+  }
+}
+
+bool finish() {
+  int count = A_work_queue.size() + B_work_queue.size() + C_work_queue.size()
+      + D_work_queue.size();
+
+//  std::cout << "A: " << A_q.size() << std::endl;
+//  std::cout << "B: " << B_q.size() << std::endl;
+//  std::cout << "C: " << C_q.size() << std::endl;
+//  std::cout << "D: " << D_q.size() << std::endl << std::endl;
+//  std::cout << count << std::endl;
+
+  if (count == 0)
+    return true;
+  else
+    return false;
 }
 
 int main(int argc, char* argv[]) {
   std::cout << "Blatt02/Aufgabe 2" << std::endl;
   boost::timer::auto_cpu_timer timer;
+  boost::thread_group fft_g;
 
-  a_to_A();
+  boost::thread *t1 = new boost::thread(a_to_A);
+  fft_g.add_thread(t1);
+
+  boost::thread *t2 = new boost::thread(create_B);
+  fft_g.add_thread(t2);
+
+  boost::thread *t3 = new boost::thread(AB_to_C);
+  fft_g.add_thread(t3);
+
+  boost::thread *t4 = new boost::thread(C_to_D);
+  fft_g.add_thread(t4);
+
+  boost::thread *t5 = new boost::thread(D_to_d);
+  fft_g.add_thread(t5);
+
+  fft_g.join_all();
 
   return 0;
 }
-
