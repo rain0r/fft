@@ -13,10 +13,10 @@ vector_queue B_work_queue = vector_queue();
 vector_queue C_work_queue = vector_queue();
 matrix_queue D_work_queue = matrix_queue();
 
-Trans A_mtx = Trans();
-Trans B_mtx = Trans();
-Trans C_mtx = Trans();
-Trans D_mtx = Trans();
+Trans A_mtx;
+Trans B_mtx;
+Trans C_mtx;
+Trans D_mtx;
 
 int layer = 16;
 int n = 1024;
@@ -49,12 +49,24 @@ void a_to_A() {
     if ((status = _xbegin()) == _XBEGIN_STARTED) {
       if (!A_mtx.isLocked()) {
         A_mtx.setLocked(true);
+
+        // Actual work
         A_work_queue.push(a);
+        // Actual work
+
         A_mtx.setLocked(false);
       }
       _xabort(0xff); /* lock busy */
     } else {
       // fallback with mutex
+
+      A_mtx.mtxlock();
+
+      // Actual work
+      A_work_queue.push(a);
+      // Actual work
+
+      A_mtx.mtxunlock();
     }
     if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
       // wait
@@ -82,12 +94,24 @@ void create_B() {
     if ((status = _xbegin()) == _XBEGIN_STARTED) {
       if (!B_mtx.isLocked()) {
         B_mtx.setLocked(true);
+
+        // Actual work
         B_work_queue.push(B);
+        // Actual work
+
         B_mtx.setLocked(false);
       }
       _xabort(0xff); /* lock busy */
     } else {
       // fallback with mutex
+
+      B_mtx.mtxlock();
+
+      // Actual work
+      B_work_queue.push(B);
+      // Actual work
+
+      B_mtx.mtxunlock();
     }
     if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
       // wait
@@ -110,13 +134,25 @@ void AB_to_C() {
         if ((status = _xbegin()) == _XBEGIN_STARTED) {
           if (!A_mtx.isLocked()) {
             A_mtx.setLocked(true);
+
+            // Actual work
             matrix_vector A = A_work_queue.front();
             A_work_queue.pop();
+            // Actual work
+
             A_mtx.setLocked(false);
           }
           _xabort(0xff); /* lock busy */
         } else {
           // fallback with mutex
+          A_mtx.mtxlock();
+
+          // Actual work
+          matrix_vector A = A_work_queue.front();
+          A_work_queue.pop();
+          // Actual work
+
+          A_mtx.mtxunlock();
         }
         if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
           // wait
@@ -124,19 +160,30 @@ void AB_to_C() {
           break;
       }
 
-
       for (int i = 0; i < RETRIES; i++) {
         unsigned int status;
         if ((status = _xbegin()) == _XBEGIN_STARTED) {
           if (!B_mtx.isLocked()) {
             B_mtx.setLocked(true);
+
+            // Actual work
             matrix_vector B = B_work_queue.front();
             B_work_queue.pop();
+            // Actual work
+
             B_mtx.setLocked(false);
           }
           _xabort(0xff); /* lock busy */
         } else {
           // fallback with mutex
+          B_mtx.mtxlock();
+
+          // Actual work
+          matrix_vector B = B_work_queue.front();
+          B_work_queue.pop();
+          // Actual work
+
+          B_mtx.mtxunlock();
         }
         if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
           // wait
@@ -171,12 +218,23 @@ void AB_to_C() {
         if ((status = _xbegin()) == _XBEGIN_STARTED) {
           if (!C_mtx.isLocked()) {
             C_mtx.setLocked(true);
+
+            // Actual work
             C_work_queue.push(C);
+            // Actual work
+
             C_mtx.setLocked(false);
           }
           _xabort(0xff); /* lock busy */
         } else {
           // fallback with mutex
+          C_mtx.mtxlock();
+
+          // Actual work
+          C_work_queue.push(C);
+          // Actual work
+
+          C_mtx.mtxunlock();
         }
         if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
           // wait
@@ -202,13 +260,25 @@ void C_to_D() {
         if ((status = _xbegin()) == _XBEGIN_STARTED) {
           if (!C_mtx.isLocked()) {
             C_mtx.setLocked(true);
+
+            // Actual work
             matrix_vector C = C_work_queue.front();
             C_work_queue.pop();
+            // Actual work
+
             C_mtx.setLocked(false);
           }
           _xabort(0xff); /* lock busy */
         } else {
           // fallback with mutex
+          C_mtx.mtxlock();
+
+          // Actual work
+          matrix_vector C = C_work_queue.front();
+          C_work_queue.pop();
+          // Actual work
+
+          C_mtx.mtxunlock();
         }
         if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
           // wait
@@ -241,12 +311,23 @@ void C_to_D() {
         if ((status = _xbegin()) == _XBEGIN_STARTED) {
           if (!D_mtx.isLocked()) {
             D_mtx.setLocked(true);
+
+            // Actual work
             D_work_queue.push(*D_mat);
+            // Actual work
+
             D_mtx.setLocked(false);
           }
           _xabort(0xff); /* lock busy */
         } else {
           // fallback with mutex
+          D_mtx.mtxlock();
+
+          // Actual work
+          D_work_queue.push(*D_mat);
+          // Actual work
+
+          D_mtx.mtxunlock();
         }
         if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
           // wait
@@ -270,13 +351,25 @@ void D_to_d() {
         if ((status = _xbegin()) == _XBEGIN_STARTED) {
           if (!D_mtx.isLocked()) {
             D_mtx.setLocked(true);
+
+            // Actual work
             Matrix D = D_work_queue.front();
             D_work_queue.pop();
+            // Actual work
+
             D_mtx.setLocked(false);
           }
           _xabort(0xff); /* lock busy */
         } else {
           // fallback with mutex
+          D_mtx.mtxlock();
+
+          // Actual work
+          Matrix D = D_work_queue.front();
+          D_work_queue.pop();
+          // Actual work
+
+          D_mtx.mtxunlock();
         }
         if ((status & _XABORT_EXPLICIT) && _XABORT_CODE(status) == 0xff) {
           // wait

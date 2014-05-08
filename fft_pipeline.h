@@ -79,8 +79,17 @@ class Trans {
     this->locked = locked;
   }
 
+  void mtxlock() {
+    this->mtx.lock();
+  }
+
+  void mtxunlock() {
+    this->mtx.unlock();
+  }
+
  private:
   bool locked;
+  boost::mutex mtx;
 
 };
 
